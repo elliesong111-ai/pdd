@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>拼多多竞品分析工具</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif; background: #f0f2f5; color: #1a1a2e; }
+
+.header { background: linear-gradient(135deg, #e60012 0%, #ff6b35 100%); color: white; padding: 20px 32px; display: flex; align-items: center; gap: 16px; box-shadow: 0 2px 12px rgba(230,0,18,0.3); }
+.header h1 { font-size: 22px; font-weight: 700; }
+.header p { font-size: 13px; opacity: 0.85; margin-top: 2px; }
+
+.container { max-width: 1400px; margin: 0 auto; padding: 24px; }
+
+.card { background: white; border-radius: 12px; padding: 24px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+.card h2 { font-size: 16px; font-weight: 600; color: #1a1a2e; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+.card h2 span { font-size: 18px; }
+
+.steps { display: flex; gap: 12px; margin-bottom: 24px; }
+.step { flex: 1; background: white; border-radius: 12px; padding: 16px 20px; border: 2px solid #f0f0f0; cursor: pointer; transition: all 0.2s; }
+.step.active { border-color: #e60012; background: #fff5f5; }
+.step .num { width: 28px; height: 28px; border-radius: 50%; background: #f0f0f0; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; margin-bottom: 8px; }
+.step.active .num { background: #e60012; color: white; }
+.step .title { font-weight: 600; font-size: 14px; }
+.step .desc { font-size: 12px; color: #888; margin-top: 4px; }
+
+.row { display: flex; gap: 12px; }
+.row input, .row select { flex: 1; padding: 10px 14px; border: 1.5px solid #e8e8e8; border-radius: 8px; font-size: 14px; outline: none; transition: border-color 0.2s; }
+.row input:focus, .row select:focus { border-color: #e60012; }
+.btn { padding: 10px 20px; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
+.btn-primary { background: #e60012; color: white; }
+.btn-primary:hover { background: #cc0010; transform: translateY(-1px); }
+.btn-secondary { background: #f5f5f5; color: #333; }
+.btn-secondary:hover { background: #e8e8e8; }
+.btn-blue { background: #1677ff; color: white; }
+.btn-blue:hover { background: #0958d9; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+.product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; margin-top: 16px; }
+.product-card { border: 1.5px solid #e8e8e8; border-radius: 10px; padding: 14px; cursor: pointer; transition: all 0.2s; position: relative; }
+.product-card:hover { border-color: #e60012; box-shadow: 0 4px 12px rgba(230,0,18,0.1); }
+.product-card.selected { border-color: #e60012; background: #fff5f5; }
+.product-card .check { position: absolute; top: 10px; right: 10px; width: 20px; height: 20px; border-radius: 50%; border: 2px solid #ddd; display: flex; align-items: center; justify-content: center; font-size: 11px; }
+.product-card.selected .check { background: #e60012; border-color: #e60012; color: white; }
+.product-card .pname { font-size: 13px; font-weight: 600; line-height: 1.4; margin-bottom: 8px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.product-card .pmeta { display: flex; gap: 8px; font-size: 12px; }
+.product-card .price { color: #e60012; font-weight: 700; }
+.product-card .sales { color: #888; }
+
+.progress-bar { background: #f0f0f0; border-radius: 4px; height: 8px; margin: 8px 0; overflow: hidden; }
+.progress-fill { background: linear-gradient(90deg, #e60012, #ff6b35); height: 100%; border-radius: 4px; transition: width 0.3s; }
+
+.tag { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 16px; font-size: 12px; font-weight: 500; margin: 3px; }
+.tag-green { background: #f6ffed; color: #52c41a; border: 1px solid #b7eb8f; }
+.tag-red { background: #fff2f0; color: #ff4d4f; border: 1px solid #ffccc7; }
+.tag-blue { background: #e6f4ff; color: #1677ff; border: 1px solid #91caff; }
+.tag-orange { background: #fff7e6; color: #fa8c16; border: 1px solid #ffd591; }
+.tag-purple { background: #f9f0ff; color: #722ed1; border: 1px solid #d3adf7; }
+
+.analysis-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 900px) { .analysis-grid { grid-template-columns: 1fr; } }
+.analysis-card { border: 1px solid #f0f0f0; border-radius: 10px; padding: 16px; }
+.analysis-card h3 { font-size: 14px; font-weight: 600; margin-bottom: 12px; color: #444; }
+
+.copy-box { background: #f8f9fa; border-left: 4px solid #e60012; padding: 12px 14px; border-radius: 0 8px 8px 0; margin: 8px 0; font-size: 13px; line-height: 1.7; color: #333; cursor: pointer; transition: background 0.2s; }
+.copy-box:hover { background: #f0f0f0; }
+.copy-box::after { content: '点击复制'; float: right; font-size: 11px; color: #aaa; }
+
+.persona-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.persona-item { background: #f8f9fa; border-radius: 8px; padding: 12px; }
+.persona-item .label { font-size: 11px; color: #888; margin-bottom: 4px; }
+.persona-item .value { font-size: 14px; font-weight: 600; color: #1a1a2e; }
+
+.risk-item { display: flex; align-items: flex-start; gap: 10px; padding: 10px 0; border-bottom: 1px solid #f5f5f5; }
+.risk-item:last-child { border-bottom: none; }
+.risk-dot { width: 8px; height: 8px; border-radius: 50%; background: #ff4d4f; flex-shrink: 0; margin-top: 5px; }
+
+.summary-box { background: linear-gradient(135deg, #fff5f5 0%, #fff0e6 100%); border: 1px solid #ffd0c0; border-radius: 10px; padding: 16px; font-size: 14px; line-height: 1.8; color: #333; }
+
+.compare-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.compare-table th { background: #f8f9fa; padding: 10px 12px; text-align: left; font-weight: 600; border-bottom: 2px solid #e8e8e8; }
+.compare-table td { padding: 10px 12px; border-bottom: 1px solid #f0f0f0; vertical-align: top; }
+.compare-table tr:hover td { background: #fafafa; }
+
+.toast { position: fixed; bottom: 24px; right: 24px; background: #1a1a2e; color: white; padding: 12px 20px; border-radius: 8px; font-size: 13px; opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 9999; }
+.toast.show { opacity: 1; }
+
+.empty { text-align: center; padding: 40px; color: #aaa; font-size: 14px; }
+.loading { display: flex; align-items: center; gap: 8px; color: #888; font-size: 14px; }
+.spinner { width: 18px; height: 18px; border: 2px solid #e8e8e8; border-top-color: #e60012; border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.tab-bar { display: flex; border-bottom: 2px solid #f0f0f0; margin-bottom: 20px; gap: 4px; }
+.tab { padding: 8px 16px; font-size: 14px; font-weight: 500; cursor: pointer; border-radius: 8px 8px 0 0; color: #888; transition: all 0.2s; }
+.tab.active { color: #e60012; border-bottom: 2px solid #e60012; margin-bottom: -2px; background: #fff5f5; }
+
+#pane-step1, #pane-step2, #pane-step3, #pane-step4 { display: none; }
+#pane-step1.active, #pane-step2.active, #pane-step3.active, #pane-step4.active { display: block; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>🛒 拼多多竞品分析工具</h1>
+    <p>挖掘竞品评论 · 洞察买家痛点 · 精准营销方向</p>
+  </div>
+</div>
+
+<div class="container">
+  <!-- Steps -->
+  <div class="steps">
+    <div class="step active" id="step1-btn" onclick="goStep(1)">
+      <div class="num">1</div>
+      <div class="title">搜索竞品</div>
+      <div class="desc">输入关键词找竞争对手</div>
+    </div>
+    <div class="step" id="step2-btn" onclick="goStep(2)">
+      <div class="num">2</div>
+      <div class="title">抓取评论</div>
+      <div class="desc">选商品，批量获取评论</div>
+    </div>
+    <div class="step" id="step3-btn" onclick="goStep(3)">
+      <div class="num">3</div>
+      <div class="title">AI 分析</div>
+      <div class="desc">关键词、画像、营销方向</div>
+    </div>
+    <div class="step" id="step4-btn" onclick="goStep(4)">
+      <div class="num">4</div>
+      <div class="title">竞品对比</div>
+      <div class="desc">多品横向对比找差距</div>
+    </div>
+  </div>
+
+  <!-- Step 1: Search -->
+  <div id="pane-step1" class="active">
+    <div class="card">
+      <h2><span>🔍</span> 搜索竞品商品</h2>
+      <div class="row">
+        <input id="search-kw" type="text" placeholder="输入关键词，如：保温杯、防晒霜、儿童玩具..." />
+        <select id="search-size">
+          <option value="10">10件</option>
+          <option value="20" selected>20件</option>
+          <option value="40">40件</option>
+        </select>
+        <button class="btn btn-primary" onclick="searchProducts()">搜索</button>
+      </div>
+      <div id="search-status" style="margin-top:12px"></div>
+      <div id="product-list" class="product-grid"></div>
+      <div id="step1-next" style="display:none; margin-top:16px; text-align:right">
+        <span id="selected-count" style="font-size:13px; color:#888; margin-right:12px"></span>
+        <button class="btn btn-primary" onclick="goStep(2)">下一步：抓取评论 →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 2: Fetch Reviews -->
+  <div id="pane-step2">
+    <div class="card">
+      <h2><span>📥</span> 抓取商品评论</h2>
+      <div id="fetch-product-list"></div>
+      <div id="fetch-status" style="margin-top:16px"></div>
+      <div style="margin-top:16px; text-align:right">
+        <button class="btn btn-primary" onclick="goStep(3)" id="to-analyze-btn" disabled>下一步：AI 分析 →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 3: Analysis -->
+  <div id="pane-step3">
+    <div class="card">
+      <h2><span>🤖</span> AI 智能分析</h2>
+      <div id="analysis-product-list"></div>
+      <div id="analysis-result" style="margin-top:20px"></div>
+    </div>
+  </div>
+
+  <!-- Step 4: Compare -->
+  <div id="pane-step4">
+    <div class="card">
+      <h2><span>⚖️</span> 竞品横向对比</h2>
+      <div id="compare-select-hint" style="font-size:13px; color:#888; margin-bottom:12px">请先在步骤1-2中选择并抓取至少2个竞品的评论</div>
+      <div id="compare-product-list"></div>
+      <div style="margin-top:16px">
+        <div class="row">
+          <input id="compare-kw" type="text" placeholder="对比维度关键词（可选，如：保温效果）" />
+          <button class="btn btn-blue" onclick="compareProducts()">开始对比分析</button>
+        </div>
+      </div>
+      <div id="compare-result" style="margin-top:20px"></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let selectedProducts = [];
+let fetchedProducts = [];
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+function goStep(n) {
+  for (let i = 1; i <= 4; i++) {
+    document.getElementById(`pane-step${i}`).classList.toggle('active', i === n);
+    document.getElementById(`step${i}-btn`).classList.toggle('active', i === n);
+  }
+  if (n === 2) renderFetchList();
+  if (n === 3) renderAnalysisList();
+  if (n === 4) renderCompareList();
+}
+
+// ── Step 1 ────────────────────────────────────────────────────────────────────
+async function searchProducts() {
+  const kw = document.getElementById('search-kw').value.trim();
+  const size = document.getElementById('search-size').value;
+  if (!kw) return showToast('请输入关键词');
+
+  document.getElementById('search-status').innerHTML = '<div class="loading"><div class="spinner"></div>搜索中...</div>';
+  document.getElementById('product-list').innerHTML = '';
+
+  try {
+    const res = await apiFetch(`/api/pdd/search?keyword=${encodeURIComponent(kw)}&size=${size}`);
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error);
+    renderProducts(data.products, kw);
+    document.getElementById('search-status').innerHTML = `<span style="color:#52c41a; font-size:13px">✓ 找到 ${data.products.length} 件商品，点击选择要分析的竞品</span>`;
+  } catch (e) {
+    document.getElementById('search-status').innerHTML = `<span style="color:#ff4d4f; font-size:13px">✗ ${e.message}</span>`;
+  }
+}
+
+function renderProducts(products, kw) {
+  const list = document.getElementById('product-list');
+  list.innerHTML = products.map(p => `
+    <div class="product-card" id="pc-${p.goods_id}" onclick="toggleProduct(${JSON.stringify(p).replace(/"/g,'&quot;')})">
+      <div class="check" id="check-${p.goods_id}"></div>
+      <div class="pname">${p.name}</div>
+      <div class="pmeta">
+        <span class="price">¥${p.price.toFixed(2)}</span>
+        <span class="sales">销量 ${p.sales_count > 0 ? p.sales_count.toLocaleString() : '—'}</span>
+      </div>
+      <div style="font-size:11px; color:#aaa; margin-top:4px">${p.shop_name || ''}</div>
+    </div>
+  `).join('');
+}
+
+function toggleProduct(p) {
+  const idx = selectedProducts.findIndex(x => x.goods_id === p.goods_id);
+  if (idx >= 0) {
+    selectedProducts.splice(idx, 1);
+    document.getElementById(`pc-${p.goods_id}`)?.classList.remove('selected');
+    document.getElementById(`check-${p.goods_id}`).textContent = '';
+  } else {
+    selectedProducts.push(p);
+    document.getElementById(`pc-${p.goods_id}`)?.classList.add('selected');
+    document.getElementById(`check-${p.goods_id}`).textContent = '✓';
+  }
+  const cnt = document.getElementById('selected-count');
+  const nxt = document.getElementById('step1-next');
+  if (selectedProducts.length > 0) {
+    cnt.textContent = `已选 ${selectedProducts.length} 件商品`;
+    nxt.style.display = 'block';
+  } else {
+    nxt.style.display = 'none';
+  }
+}
+
+// ── Step 2 ────────────────────────────────────────────────────────────────────
+function renderFetchList() {
+  const el = document.getElementById('fetch-product-list');
+  if (!selectedProducts.length) {
+    el.innerHTML = '<div class="empty">请先在步骤1中选择商品</div>';
+    return;
+  }
+  el.innerHTML = selectedProducts.map(p => `
+    <div style="border:1px solid #f0f0f0; border-radius:10px; padding:14px; margin-bottom:12px">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px">
+        <div>
+          <div style="font-weight:600; font-size:14px">${p.name.slice(0,40)}...</div>
+          <div style="font-size:12px; color:#888; margin-top:2px">ID: ${p.goods_id} | ¥${p.price.toFixed(2)}</div>
+        </div>
+        <button class="btn btn-primary" id="fetch-btn-${p.goods_id}" onclick="fetchReviews('${p.goods_id}', '${p.name.replace(/'/g,'').slice(0,20)}')">抓取评论</button>
+      </div>
+      <div id="fetch-progress-${p.goods_id}"></div>
+    </div>
+  `).join('');
+}
+
+function fetchReviews(goodsId, name) {
+  const btn = document.getElementById(`fetch-btn-${goodsId}`);
+  const prog = document.getElementById(`fetch-progress-${goodsId}`);
+  btn.disabled = true;
+  btn.textContent = '抓取中...';
+  prog.innerHTML = '<div class="progress-bar"><div class="progress-fill" id="pf-'+goodsId+'" style="width:0%"></div></div><div id="pt-'+goodsId+'" style="font-size:12px; color:#888; margin-top:4px">准备中...</div>';
+
+  const es = apiES(`/api/pdd/reviews/fetch?goods_id=${goodsId}&pages=5`);
+  es.addEventListener('progress', e => {
+    const d = JSON.parse(e.data);
+    const pct = Math.min(d.page * 20, 95);
+    document.getElementById(`pf-${goodsId}`).style.width = pct + '%';
+    document.getElementById(`pt-${goodsId}`).textContent = `已获取 ${d.total} 条评论（第${d.page}页）`;
+  });
+  es.addEventListener('done', e => {
+    const d = JSON.parse(e.data);
+    document.getElementById(`pf-${goodsId}`).style.width = '100%';
+    document.getElementById(`pt-${goodsId}`).textContent = `✓ 完成！共获取 ${d.total} 条评论`;
+    btn.textContent = `✓ ${d.total}条`;
+    btn.style.background = '#52c41a';
+    if (!fetchedProducts.find(x => x.goods_id === goodsId)) {
+      fetchedProducts.push({ goods_id: goodsId, name, review_count: d.total });
+    }
+    document.getElementById('to-analyze-btn').disabled = false;
+    es.close();
+  });
+  es.addEventListener('error', e => {
+    const d = JSON.parse(e.data || '{}');
+    document.getElementById(`pt-${goodsId}`).innerHTML = `<span style="color:#ff4d4f">✗ ${d.message || '抓取失败'}</span>`;
+    btn.disabled = false;
+    btn.textContent = '重试';
+    es.close();
+  });
+  es.onerror = () => {
+    if (es.readyState === 2) es.close();
+  };
+}
+
+// ── Step 3 ────────────────────────────────────────────────────────────────────
+function renderAnalysisList() {
+  const el = document.getElementById('analysis-product-list');
+  const products = fetchedProducts.length ? fetchedProducts : selectedProducts;
+  if (!products.length) {
+    el.innerHTML = '<div class="empty">请先完成步骤1-2</div>';
+    return;
+  }
+  el.innerHTML = `
+    <div style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:16px">
+      ${products.map(p => `
+        <div style="border:1px solid #e8e8e8; border-radius:8px; padding:10px 14px; cursor:pointer; transition:all 0.2s"
+             id="ap-${p.goods_id}"
+             onclick="runAnalysis('${p.goods_id}', '${(p.name||'').replace(/'/g,'').slice(0,30)}')">
+          <div style="font-size:13px; font-weight:600">${(p.name||p.goods_id).slice(0,25)}...</div>
+          <div style="font-size:11px; color:#aaa; margin-top:2px">${p.review_count || ''} 条评论 · 点击分析</div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+async function runAnalysis(goodsId, name) {
+  const btn = document.getElementById(`ap-${goodsId}`);
+  if (btn) { btn.style.borderColor = '#e60012'; btn.style.background = '#fff5f5'; }
+
+  const result = document.getElementById('analysis-result');
+  result.innerHTML = '<div class="loading" style="padding:20px"><div class="spinner"></div>AI 分析中，约需 15-30 秒...</div>';
+
+  try {
+    const res = await apiFetch('/api/pdd/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ goods_id: goodsId, product_name: name })
+    });
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error);
+    renderAnalysisResult(data.result, name, data.review_count);
+  } catch (e) {
+    result.innerHTML = `<div style="color:#ff4d4f; padding:16px">✗ ${e.message}</div>`;
+  }
+}
+
+function renderAnalysisResult(r, name, count) {
+  const kw = r.keywords || {};
+  const bp = r.buyer_persona || {};
+  const mi = r.marketing_insights || {};
+  const ra = r.risk_alerts || {};
+
+  document.getElementById('analysis-result').innerHTML = `
+    <div style="margin-bottom:16px; padding:12px 16px; background:#f8f9fa; border-radius:8px; font-size:13px; color:#555">
+      分析商品：<strong>${name}</strong> · 基于 <strong>${count}</strong> 条评论
+    </div>
+
+    <div class="summary-box" style="margin-bottom:20px">
+      <div style="font-weight:600; margin-bottom:6px; color:#e60012">💡 核心洞察</div>
+      ${r.summary || ''}
+    </div>
+
+    <div class="analysis-grid">
+      <!-- 关键词 -->
+      <div class="analysis-card">
+        <h3>🏷️ 高频好评关键词</h3>
+        <div>${(kw.positive||[]).map(k => `<span class="tag tag-green">${typeof k==='object'?k.word:k} ${typeof k==='object' && k.count?'×'+k.count:''}</span>`).join('')}</div>
+        <h3 style="margin-top:14px">⚠️ 差评关键词</h3>
+        <div>${(kw.negative||[]).map(k => `<span class="tag tag-red">${typeof k==='object'?k.word:k}</span>`).join('')}</div>
+        <h3 style="margin-top:14px">🔎 消费者关注点</h3>
+        <div>${(kw.product_features||[]).map(f => `<span class="tag tag-blue">${f}</span>`).join('')}</div>
+      </div>
+
+      <!-- 买家画像 -->
+      <div class="analysis-card">
+        <h3>👤 买家画像</h3>
+        <div class="persona-grid" style="margin-bottom:12px">
+          <div class="persona-item"><div class="label">性别比例</div><div class="value">${bp.gender_ratio||'—'}</div></div>
+          <div class="persona-item"><div class="label">年龄区间</div><div class="value">${bp.age_range||'—'}</div></div>
+        </div>
+        <div style="font-size:13px; font-weight:600; margin-bottom:6px; color:#555">购买场景</div>
+        <div>${(bp.usage_scenarios||[]).map(s => `<span class="tag tag-purple">${s}</span>`).join('')}</div>
+        <div style="font-size:13px; font-weight:600; margin:10px 0 6px; color:#555">购买触发点</div>
+        <div>${(bp.purchase_triggers||[]).map(s => `<span class="tag tag-orange">${s}</span>`).join('')}</div>
+        <div style="font-size:13px; font-weight:600; margin:10px 0 6px; color:#555">核心痛点</div>
+        <div>${(bp.pain_points||[]).map((s,i) => `<div style="font-size:13px; padding:4px 0; color:#444">${i+1}. ${s}</div>`).join('')}</div>
+      </div>
+
+      <!-- 营销方向 -->
+      <div class="analysis-card" style="grid-column:1/-1">
+        <h3>🚀 营销方向建议</h3>
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin-bottom:16px">
+          <div>
+            <div style="font-size:12px; color:#888; margin-bottom:6px">核心卖点（按优先级）</div>
+            ${(mi.core_selling_points||[]).map((s,i) => `<div style="font-size:13px; padding:5px 0; border-bottom:1px solid #f5f5f5; display:flex; gap:8px"><span style="color:#e60012; font-weight:700">${i+1}</span>${s}</div>`).join('')}
+          </div>
+          <div>
+            <div style="font-size:12px; color:#888; margin-bottom:6px">内容/短视频切入角度</div>
+            ${(mi.content_angles||[]).map(s => `<div style="font-size:13px; padding:5px 0; border-bottom:1px solid #f5f5f5">📹 ${s}</div>`).join('')}
+          </div>
+          <div>
+            <div style="font-size:12px; color:#888; margin-bottom:6px">推广平台建议</div>
+            ${(mi.target_platforms||[]).map(s => `<div style="font-size:13px; padding:5px 0; border-bottom:1px solid #f5f5f5">📱 ${s}</div>`).join('')}
+          </div>
+        </div>
+        <div style="font-size:13px; font-weight:600; margin-bottom:8px; color:#555">📝 可直接使用的文案模板（点击复制）</div>
+        ${(mi.copy_templates||[]).map(t => `<div class="copy-box" onclick="copyText(this, '${t.replace(/'/g,"\\'")}')">${t}</div>`).join('')}
+      </div>
+
+      <!-- 风险 -->
+      <div class="analysis-card" style="grid-column:1/-1">
+        <h3>⚠️ 风险预警</h3>
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px">
+          <div>
+            <div style="font-size:12px; color:#888; margin-bottom:8px">常见投诉</div>
+            ${(ra.common_complaints||[]).map(c => `<div class="risk-item"><div class="risk-dot"></div><div style="font-size:13px">${c}</div></div>`).join('')}
+          </div>
+          <div>
+            <div style="font-size:12px; color:#888; margin-bottom:8px">退货/差评原因</div>
+            ${(ra.return_reasons||[]).map(c => `<div class="risk-item"><div class="risk-dot" style="background:#fa8c16"></div><div style="font-size:13px">${c}</div></div>`).join('')}
+          </div>
+          <div>
+            <div style="font-size:12px; color:#888; margin-bottom:8px">竞品潜在优势（需注意）</div>
+            ${(ra.competitor_advantages||[]).map(c => `<div class="risk-item"><div class="risk-dot" style="background:#1677ff"></div><div style="font-size:13px">${c}</div></div>`).join('')}
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function copyText(el, text) {
+  navigator.clipboard.writeText(text).then(() => showToast('文案已复制！'));
+}
+
+// ── Step 4 ────────────────────────────────────────────────────────────────────
+let compareSelected = [];
+
+function renderCompareList() {
+  const el = document.getElementById('compare-product-list');
+  const products = fetchedProducts.length ? fetchedProducts : selectedProducts;
+  if (products.length < 2) {
+    document.getElementById('compare-select-hint').textContent = '请先在步骤1-2中选择并抓取至少2个竞品的评论';
+    el.innerHTML = '';
+    return;
+  }
+  document.getElementById('compare-select-hint').textContent = '勾选要对比的商品（至少2个）：';
+  compareSelected = products.map(p => p.goods_id);
+  el.innerHTML = `
+    <div style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:16px">
+      ${products.map(p => `
+        <label style="display:flex; align-items:center; gap:8px; padding:8px 12px; border:1px solid #e8e8e8; border-radius:8px; cursor:pointer; font-size:13px">
+          <input type="checkbox" checked value="${p.goods_id}" onchange="toggleCompare('${p.goods_id}', this.checked)">
+          ${(p.name||p.goods_id).slice(0,20)}... (${p.review_count||'?'}条)
+        </label>
+      `).join('')}
+    </div>
+  `;
+}
+
+function toggleCompare(id, checked) {
+  if (checked) compareSelected.push(id);
+  else compareSelected = compareSelected.filter(x => x !== id);
+}
+
+async function compareProducts() {
+  if (compareSelected.length < 2) return showToast('请至少选择2个商品');
+  const kw = document.getElementById('compare-kw').value.trim();
+  const result = document.getElementById('compare-result');
+  result.innerHTML = '<div class="loading" style="padding:20px"><div class="spinner"></div>对比分析中...</div>';
+
+  try {
+    const res = await apiFetch('/api/pdd/compare', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ goods_ids: compareSelected, keyword: kw })
+    });
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error);
+    renderCompareResult(data.result);
+  } catch (e) {
+    result.innerHTML = `<div style="color:#ff4d4f; padding:16px">✗ ${e.message}</div>`;
+  }
+}
+
+function renderCompareResult(r) {
+  const rows = r.comparison_table || [];
+  document.getElementById('compare-result').innerHTML = `
+    <div style="overflow-x:auto; margin-bottom:20px">
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <th>商品</th>
+            <th>核心优势</th>
+            <th>核心劣势</th>
+            <th>目标客群</th>
+            <th>价格定位</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows.map(row => `
+            <tr>
+              <td><strong>${row.product_name}</strong></td>
+              <td>${(row.core_strengths||[]).map(s => `<div>✅ ${s}</div>`).join('')}</td>
+              <td>${(row.core_weaknesses||[]).map(s => `<div>❌ ${s}</div>`).join('')}</td>
+              <td>${row.target_audience||''}</td>
+              <td>${row.price_positioning||''}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px">
+      <div class="analysis-card">
+        <h3>🎯 市场空白 / 机会点</h3>
+        ${(r.market_gaps||[]).map((g,i) => `<div style="font-size:13px; padding:6px 0; border-bottom:1px solid #f5f5f5"><strong style="color:#e60012">${i+1}.</strong> ${g}</div>`).join('')}
+      </div>
+      <div class="analysis-card">
+        <h3>⚡ 差异化建议</h3>
+        ${(r.differentiation_suggestions||[]).map((s,i) => `<div style="font-size:13px; padding:6px 0; border-bottom:1px solid #f5f5f5"><strong style="color:#1677ff">${i+1}.</strong> ${s}</div>`).join('')}
+      </div>
+    </div>
+
+    <div class="summary-box">
+      <div style="font-weight:600; margin-bottom:6px; color:#e60012">🏆 制胜策略</div>
+      ${r.winning_strategy||''}
+    </div>
+  `;
+}
+
+// Base URL — works when served by Express or opened directly
+const API_BASE = window.location.protocol === 'file:' ? 'http://localhost:3000' : window.location.origin;
+
+window.apiFetch = (path, opts) => fetch(API_BASE + path, opts);
+window.apiES = (path) => new EventSource(API_BASE + path);
+
+// Init
+document.getElementById('search-kw').addEventListener('keydown', e => { if (e.key === 'Enter') searchProducts(); });
+</script>
+</body>
+</html>

@@ -1,0 +1,18 @@
+{
+  "name": "pdd-competitor-analysis",
+  "version": "1.0.0",
+  "description": "拼多多竞品评论挖掘与营销分析工具",
+  "main": "src/server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.80.0",
+    "axios": "^1.14.0",
+    "better-sqlite3": "^12.8.0",
+    "dotenv": "^17.3.1",
+    "express": "^5.2.1"
+  }
+}
